@@ -1,0 +1,47 @@
+name: TikTok QR Login Automation
+
+on:
+  workflow_dispatch:
+    inputs:
+      session_id:
+        description: 'ID da sessão no Supabase (vem do Edge Function)'
+        required: true
+        type: string
+
+jobs:
+  run_qr_login:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout do repositório
+        uses: actions/checkout@v4
+
+      - name: Configurar Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Instalar dependências Python
+        run: |
+          python -m pip install --upgrade pip
+          pip install selenium supabase-py
+
+      - name: Instalar Chrome + ChromeDriver (automático)
+        uses: browser-actions/setup-chrome@latest
+        id: chrome
+      - name: Ver versão do Chrome instalada
+        run: ${{ steps.chrome.outputs.chrome-path }} --version
+
+      - name: Executar o script de login QR
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+          SESSION_ID: ${{ inputs.session_id }}
+        run: |
+          echo "Iniciando login QR para sessão: $SESSION_ID"
+          python main.py "$SESSION_ID"
+
+      - name: Finalizado
+        if: always()
+        run: echo "Workflow finalizado. Status da sessão: $SESSION_ID"
